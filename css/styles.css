@@ -11,7 +11,7 @@
   --font: system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial, sans-serif;
 }
 
-/* ===== Resetzinho rápido ================================================== */
+/* ===== Reset rápido ====================================================== */
 *{ box-sizing: border-box; }
 html, body { height: 100%; }
 body{
@@ -21,66 +21,83 @@ body{
   background: var(--bg);
 }
 
-/* ===== Mapa ocupa a tela inteira ========================================= */
+/* ===== Layout base ======================================================= */
+#app{
+  height: 100%;
+  width: 100%;
+  display: flex;
+  overflow: hidden;
+}
+
+/* Mapa ocupa a tela e cresce com o flex */
 #map{
   height: 100%;
   width: 100%;
+  flex: 1 1 auto;
+  min-width: 0;
   outline: none;
 }
 
-/* ===== Ajustes no Leaflet ================================================= */
-.leaflet-container{
-  background: #0b0e13; /* cor atrás dos tiles enquanto carregam */
+/* ===== Ajustes no MapLibre ============================================== */
+/* cor de fundo enquanto os tiles carregam */
+.maplibregl-canvas, .maplibregl-canvas-container{
+  background: #0b0e13;
 }
 
-/* Popup mais legível */
-.leaflet-popup-content{
-  margin: 10px 12px;
-  line-height: 1.35;
-  font-size: 14px;
-  color: var(--text);
-}
-.leaflet-popup-content b{
-  color: #fff;
-}
-.leaflet-popup-content a{
-  color: var(--accent);
-  text-decoration: none;
-  font-weight: 600;
-}
-.leaflet-popup-content a:hover{
-  text-decoration: underline;
-}
-
-/* Caixa do popup com cantos arredondados e leve sombra */
-.leaflet-popup-content-wrapper{
-  border-radius: var(--radius);
-  background: var(--panel);
-  box-shadow: var(--shadow);
-  border: 1px solid rgba(255,255,255,.06);
-}
-.leaflet-popup-tip{
-  background: var(--panel);
-  border: 1px solid rgba(255,255,255,.06);
-}
-
-/* Controle de atribuição mais discreto */
-.leaflet-control-attribution{
+/* Atribuição discreta */
+.maplibregl-ctrl-attrib{
   background: rgba(15,17,21,.6);
   color: var(--muted);
   border-radius: 8px;
   padding: 2px 6px;
 }
-.leaflet-control-attribution a{
+.maplibregl-ctrl-attrib a{
   color: var(--muted);
   text-decoration: none;
 }
-.leaflet-control-attribution a:hover{
+.maplibregl-ctrl-attrib a:hover{
   color: var(--text);
 }
 
-/* ===== Utilidades opcionais ============================================== */
-/* caixinha de legenda/painel (use no HTML se quiser) */
+/* ===== Popup (MapLibre) ================================================== */
+.maplibregl-popup{ z-index: 1000; }
+.maplibregl-popup-content{
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 10px 12px;
+  font-size: 14px;
+  line-height: 1.35;
+}
+.maplibregl-popup-content b{ color:#fff; }
+.maplibregl-popup-content a{
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+}
+.maplibregl-popup-content a:hover{ text-decoration: underline; }
+.maplibregl-popup-close-button{
+  color: var(--text);
+  font-size: 18px;
+}
+
+/* Triângulo do balão nas âncoras */
+.maplibregl-popup-anchor-top .maplibregl-popup-tip,
+.maplibregl-popup-anchor-top-left .maplibregl-popup-tip,
+.maplibregl-popup-anchor-top-right .maplibregl-popup-tip{
+  border-bottom-color: var(--panel);
+}
+.maplibregl-popup-anchor-bottom .maplibregl-popup-tip,
+.maplibregl-popup-anchor-bottom-left .maplibregl-popup-tip,
+.maplibregl-popup-anchor-bottom-right .maplibregl-popup-tip{
+  border-top-color: var(--panel);
+}
+.maplibregl-popup-anchor-left .maplibregl-popup-tip{ border-right-color: var(--panel); }
+.maplibregl-popup-anchor-right .maplibregl-popup-tip{ border-left-color: var(--panel); }
+
+/* ===== Utilidades (legenda/painel flutuante) ============================ */
 .legend{
   position: absolute;
   bottom: 16px;
@@ -92,7 +109,7 @@ body{
   box-shadow: var(--shadow);
   color: var(--text);
   font-size: 13px;
-  z-index: 1000; /* acima do mapa */
+  z-index: 1000;
 }
 .legend h4{
   margin: 0 0 6px;
@@ -112,26 +129,7 @@ body{
   border: 1px solid rgba(255,255,255,.15);
 }
 
-/* Responsivo: popups e painéis levemente maiores em mobile */
-@media (max-width: 560px){
-  .leaflet-popup-content{ font-size: 15px; }
-  .legend{ left: 12px; right: 12px; }
-}
-
-/* ===== Layout split (mapa + painel) ===================================== */
-#app{
-  height: 100%;
-  width: 100%;
-  display: flex;
-  overflow: hidden;
-}
-
-#map{
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
-/* Painel fechado (width 0); aberto ganha width com transição */
+/* ===== Painel lateral (split) =========================================== */
 #side{
   width: 0;
   background: var(--panel);
@@ -140,10 +138,7 @@ body{
   overflow: hidden;
   transition: width .28s ease;
 }
-
-#side.open{
-  width: min(520px, 46vw);
-}
+#side.open{ width: min(520px, 46vw); }
 
 .side-header{
   display: flex;
@@ -168,9 +163,7 @@ body{
 }
 #side-close:hover{ background: rgba(255,255,255,.06); }
 
-.side-body{
-  height: calc(100% - 44px);
-}
+.side-body{ height: calc(100% - 44px); }
 #side-iframe{
   width: 100%;
   height: 100%;
@@ -178,7 +171,12 @@ body{
   background: #0b0e13;
 }
 
-/* Mobile: painel vira “gaveta” sobre o mapa */
+/* ===== Responsivo ======================================================== */
+@media (max-width: 560px){
+  .maplibregl-popup-content{ font-size: 15px; }
+  .legend{ left: 12px; right: 12px; }
+}
+
 @media (max-width: 720px){
   #app{ position: relative; }
   #side{
@@ -191,4 +189,3 @@ body{
   }
   #side.open{ width: 100%; }
 }
-

@@ -6,42 +6,30 @@
   <title>Mapa de Ruas</title>
 
   <!-- Leaflet CSS -->
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-    crossorigin=""
-  />
-
+  <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet" />
   <!-- Seu CSS -->
   <link rel="stylesheet" href="css/styles.css" />
 </head>
 <body>
-  <!-- Mapa ocupa a tela inteira (ver CSS) -->
-  <!-- <div id="map"></div>-->
-
   <div id="app">
     <div id="map"></div>
 
+    <!-- Painel lateral para o Form -->
     <aside id="side" aria-hidden="true">
       <div class="side-header">
         <strong id="side-title">Formulário</strong>
         <button id="side-close" title="Fechar">×</button>
       </div>
       <div class="side-body">
-        <iframe id="side-iframe" loading="lazy"></iframe>
+        <iframe id="side-iframe" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
       </div>
     </aside>
   </div>
 
-  <!-- Leaflet JS -->
-  <script
-    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-    crossorigin=""
-  ></script>
+  <!-- MapLibre + Turf -->
+  <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
+  <script src="https://unpkg.com/@turf/turf@6.5.0/turf.min.js"></script>
 
-  <!-- Seu JS -->
   <script src="js/scripts.js"></script>
 </body>
 </html>
