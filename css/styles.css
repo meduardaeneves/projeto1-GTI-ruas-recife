@@ -25,12 +25,28 @@ html, body{
 /* ===== Layout base ======================================================= */
 #app{
   /* agora o #app só preenche a casca */
-  height: 100vh;
+  height: 90vh;
   display: flex;
   overflow: hidden;
   padding: 0 2rem;
 }
 
+/* ===== botão ======================================================= */
+.top-button {
+  display: block;
+  padding: 10px 20px;
+  margin: 1rem 2rem;          /* margem em volta para separar dos outros elementos */
+  background-color: #4f8cff; /* cor de fundo */
+  color: #fff;               /* cor do texto */
+  text-decoration: none;     /* remove sublinhado */
+  border-radius: 8px;        /* cantos arredondados */
+  font-weight: bold;
+  transition: background 0.2s ease;
+  text-align: center;
+}
+.top-button:hover {
+  background-color: #2563eb; /* cor ao passar o mouse */
+}
 
 /* Mapa ocupa a tela e cresce com o flex */
 #map{
@@ -179,7 +195,8 @@ html, body{
 }
 
 @media (max-width: 720px){
-    #app{
+
+  #app{
     display: block;
     height: 100dvh;
     overflow-y: auto;
