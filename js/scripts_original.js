@@ -5,52 +5,25 @@ const sideIframe = document.getElementById('side-iframe');
 const sideClose  = document.getElementById('side-close');
 
 function openSide(title, url){
-  sideTitle && (sideTitle.textContent = title || 'Formulário');
+  sideTitle.textContent = title || 'Formulário';
   if (url) {
     const embed = url.includes('embedded=true') ? url : url + (url.includes('?') ? '&' : '?') + 'embedded=true';
-    sideIframe && (sideIframe.src = embed);
+    sideIframe.src = embed;
   } else {
-    sideIframe && sideIframe.removeAttribute('src');
+    sideIframe.removeAttribute('src');
   }
-  side && side.classList.add('open');
-  side && side.setAttribute('aria-hidden', 'false');
-  setTimeout(() => map && map.resize(), 320);
+  side.classList.add('open');
+  side.setAttribute('aria-hidden', 'false');
+  // recalcula tamanho do mapa após a transição do painel
+  setTimeout(() => map.resize(), 320);
 }
 function closeSide(){
-  side && side.classList.remove('open');
-  side && side.setAttribute('aria-hidden', 'true');
-  sideIframe && sideIframe.removeAttribute('src');
-  setTimeout(() => map && map.resize(), 320);
+  side.classList.remove('open');
+  side.setAttribute('aria-hidden', 'true');
+  sideIframe.removeAttribute('src');
+  setTimeout(() => map.resize(), 320);
 }
 sideClose && sideClose.addEventListener('click', closeSide);
-
-// ===== MODO EMBED (para Google Sites) =====
-const params      = new URLSearchParams(location.search);
-const isEmbedded  = params.get('embedded') === 'true';
-const vhParamRaw  = parseInt(params.get('vh') || '90', 10); // 90% por padrão
-const EMBED_VH    = isNaN(vhParamRaw) ? 90 : Math.min(100, Math.max(50, vhParamRaw)); // clamp 50–100
-const isMobileMQ  = window.matchMedia('(max-width: 720px)');
-
-function applyEmbeddedLayout(){
-  if (!isEmbedded) return;
-  // remove margens gerais quando embutido
-  document.documentElement.classList.add('is-embedded');
-  document.body.style.margin = '0';
-
-  // no mobile, força a altura do container do mapa para N vh (padrão 90vh)
-  if (isMobileMQ.matches) {
-    const mapEl = document.getElementById('map');
-    if (mapEl) {
-      mapEl.style.height = EMBED_VH + 'vh';
-      mapEl.style.maxHeight = '100vh';
-    }
-  }
-  // no desktop, deixe o CSS normal cuidar (ou ajuste aqui se quiser)
-  setTimeout(() => map && map.resize(), 50);
-}
-
-isMobileMQ.addEventListener?.('change', applyEmbeddedLayout);
-window.addEventListener('orientationchange', applyEmbeddedLayout);
 
 // ===== MapLibre GL =====
 const map = new maplibregl.Map({
@@ -66,9 +39,11 @@ const map = new maplibregl.Map({
         attribution: '© OpenStreetMap contributors'
       }
     },
-    layers: [{ id: 'osm', type: 'raster', source: 'osm' }]
+    layers: [
+      { id: 'osm', type: 'raster', source: 'osm' }
+    ]
   },
-  center: [-34.871, -8.064], // Recife (aprox)
+  center: [-34.871, -8.064], // Recife (aprox) - inicial; depois ajustamos pelos dados
   zoom: 14,
   maxZoom: 20,
   minZoom: 10
@@ -79,16 +54,10 @@ function setPointer(on) {
   map.getCanvas().style.cursor = on ? 'pointer' : '';
 }
 
-// ===== ESPERE O LOAD PARA ADICIONAR FONTES/LAYERS =====
-map.on('load', async () => {
-  try {
-    // aplique layout de embed assim que possível
-    applyEmbeddedLayout();
-
-    // Carrega seu GeoJSON
-    const r = await fetch('data/rua_teste_links.geojson');
-    const geojson = await r.json();
-
+// Carrega seu GeoJSON (propriedades: nlgpavofic, indpav, link_formu)
+fetch('data/rua_teste_links.geojson')
+  .then(r => r.json())
+  .then(geojson => {
     // Fonte dos dados
     map.addSource('ruas', { type: 'geojson', data: geojson });
 
@@ -106,8 +75,8 @@ map.on('load', async () => {
     // Marker para mostrar o “snap” exato clicado
     const markerEl = document.createElement('div');
     markerEl.style.cssText = `
-      width:12px;height:12px;border-radius:50%;
-      background:#22c55e;border:2px solid #fff;box-shadow:0 0 0 2px rgba(0,0,0,.25);
+      width: 12px; height: 12px; border-radius: 50%;
+      background:#22c55e; border:2px solid white; box-shadow:0 0 0 2px rgba(0,0,0,.25);
     `;
     const marker = new maplibregl.Marker({ element: markerEl, anchor: 'center' });
 
@@ -118,10 +87,10 @@ map.on('load', async () => {
       anchor: 'bottom'
     });
 
-    // Calcula bbox do GeoJSON e ajusta o mapa (centraliza em qualquer tela)
+    // Calcula bbox do GeoJSON e ajusta o mapa (fica centralizado em qualquer tela)
     const b = turf.bbox(geojson); // [minX, minY, maxX, maxY]
     map.fitBounds([[b[0], b[1]], [b[2], b[3]]], {
-      padding: { top: 20, left: 20, right: 20, bottom: 40 },
+      padding: { top: 20, left: 20, right: 320, bottom: 40 }, // reserva espaço pro painel quando abrir
       maxZoom: 18
     });
 
@@ -131,33 +100,37 @@ map.on('load', async () => {
 
     // Clique com “snap” preciso ao eixo da linha + popup + painel
     map.on('click', (e) => {
+      // 1) Quais features estão debaixo do clique?
       const features = map.queryRenderedFeatures(e.point, { layers: ['ruas-line'] });
       if (!features.length) {
+        // Clique fora de linhas → fecha painel e popup
         popup.remove();
         closeSide();
         return;
       }
 
-      const f = features[0];
-      if (!f || !f.geometry) return;
+      // 2) Pega a linha mais “perto” (pega a primeira) e calcula o ponto mais próximo
+      const f = features[0]; // Feature como LineString/MultilineString
+      const line = (f.geometry.type === 'LineString' || f.geometry.type === 'MultiLineString') ? f : null;
+      if (!line) return;
 
       const clickPt = turf.point([e.lngLat.lng, e.lngLat.lat]);
-      const snapped = turf.nearestPointOnLine(
-        { type:'Feature', geometry:f.geometry, properties:{} },
-        clickPt,
-        { units: 'meters' }
-      );
+      const snapped = turf.nearestPointOnLine(line, clickPt, { units: 'meters' });
 
+      // 3) Posiciona um marcador exatamente no ponto “snapado”
       const [lng, lat] = snapped.geometry.coordinates;
       marker.setLngLat([lng, lat]).addTo(map);
 
+      // 4) Informações e links
       const props = f.properties || {};
       const nome  = props.nlgpavofic || 'Sem nome';
       const pav   = props.indpav || 'Não informado';
       const form  = props.link_formu || '';
 
+      // Street View com localização precisa (ponto snapado)
       const svUrl = `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat},${lng}`;
 
+      // 5) Popup com nome, pavimentação e link 360°
       const html = `
         <b>Rua:</b> ${nome}<br>
         <b>Pavimentação:</b> ${pav}<br>
@@ -165,31 +138,16 @@ map.on('load', async () => {
       `;
       popup.setLngLat([lng, lat]).setHTML(html).addTo(map);
 
+      // 6) Abre painel lateral com o formulário correspondente
       openSide(nome, form);
-
-      // Recalcula bounds com padding maior quando o painel abre
-      setTimeout(() => {
-        map.fitBounds([[b[0], b[1]], [b[2], b[3]]], {
-          padding: { top: 20, left: 20, right: 360, bottom: 40 },
-          maxZoom: 18
-        });
-      }, 350);
     });
 
-    // Resize responsivo (inclusive em iframe)
-    const mapEl = document.getElementById('map');
-    if (mapEl && 'ResizeObserver' in window) {
-      const ro = new ResizeObserver(() => map.resize());
-      ro.observe(mapEl);
-    }
-
+    // Reajusta bounds ao redimensionar
     window.addEventListener('resize', () => {
       map.fitBounds([[b[0], b[1]], [b[2], b[3]]], {
-        padding: { top: 20, left: 20, right: side && side.classList.contains('open') ? 360 : 20, bottom: 40 },
+        padding: { top: 20, left: 20, right: side.classList.contains('open') ? 360 : 20, bottom: 40 },
         maxZoom: 18
       });
     });
-  } catch (err) {
-    console.error('Erro ao carregar GeoJSON:', err);
-  }
-});
+  })
+  .catch(err => console.error('Erro ao carregar GeoJSON:', err));
